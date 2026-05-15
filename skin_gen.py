@@ -6,13 +6,13 @@ import random
 from perlin_noise import PerlinNoise 
 
 # --- LOGICA DI GENERAZIONE ---
-def genera_skin_completa(base_color_rgb, eye_color_rgb, include_mouth):
-    """Genera una skin Minecraft 64x64 mappata su ogni lato dei cubi."""
+def genera_skin_completa(base_color_rgb, eye_color_rgb, include_mouth, seed_val):
+    """Genera una skin Minecraft 64x64 mappata su ogni lato dei cubi con Seed specifico."""
     canvas = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
     draw = ImageDraw.Draw(canvas)
     
-    # Inizializziamo il rumore di Perlin (octaves=4 per un effetto roccioso)
-    noise = PerlinNoise(octaves=4, seed=random.randint(1, 99999))
+    # Inizializziamo il rumore di Perlin usando il Seed passato dall'utente
+    noise = PerlinNoise(octaves=4, seed=seed_val)
     
     # MAPPA COORDINATE UFFICIALE (Layout 64x64 Moderno)
     mappa = {
@@ -55,23 +55,31 @@ def genera_skin_completa(base_color_rgb, eye_color_rgb, include_mouth):
 class App:
     def __init__(self, root):
         self.root = root
-        self.root.title("Skin Gen")
-        self.root.geometry("400x600")
+        self.root.title("Skin Gen v1.1.0")
+        self.root.geometry("400x660")  # Leggermente più alta per fare spazio al Seed
         self.root.configure(bg="#1a1a1a")
 
         self.color_body = (150, 0, 0)
         self.color_eyes = (0, 255, 255)
         self.skin = None
 
-        tk.Label(root, text="NETHER SKIN FACTORY", fg="red", bg="#1a1a1a", font=("Impact", 20)).pack(pady=20)
+        tk.Label(root, text="NETHER SKIN FACTORY", fg="red", bg="#1a1a1a", font=("Impact", 20)).pack(pady=15)
         
         tk.Button(root, text="Scegli Colore Corpo", command=self.set_body).pack(pady=5)
         tk.Button(root, text="Scegli Colore Occhi", command=self.set_eyes).pack(pady=5)
         
         self.chk_bocca = tk.BooleanVar(value=True)
-        tk.Checkbutton(root, text="Mostra Bocca", variable=self.chk_bocca, bg="#1a1a1a", fg="white").pack()
+        tk.Checkbutton(root, text="Mostra Bocca", variable=self.chk_bocca, bg="#1a1a1a", fg="white").pack(pady=5)
 
-        tk.Button(root, text="⚡ GENERA ⚡", command=self.run, bg="red", fg="white", font=("Arial", 12, "bold")).pack(pady=20)
+        # --- SEZIONE SEED (La novità dell'Admin!) ---
+        tk.Label(root, text="Seed della Skin (Numero):", fg="white", bg="#1a1a1a", font=("Arial", 10, "bold")).pack(pady=2)
+        self.entry_seed = tk.Entry(root, font=("Arial", 11), justify="center", width=20)
+        self.entry_seed.pack(pady=2)
+        
+        self.lbl_current_seed = tk.Label(root, text="Seed attuale: -", fg="#00ff00", bg="#1a1a1a", font=("Arial", 9, "italic"))
+        self.lbl_current_seed.pack(pady=2)
+
+        tk.Button(root, text="⚡ GENERA ⚡", command=self.run, bg="red", fg="white", font=("Arial", 12, "bold")).pack(pady=15)
         
         self.l_prev = tk.Label(root, bg="#333")
         self.l_prev.pack(pady=10)
@@ -87,7 +95,18 @@ class App:
         if c: self.color_eyes = tuple(map(int, c))
 
     def run(self):
-        self.skin = genera_skin_completa(self.color_body, self.color_eyes, self.chk_bocca.get())
+        # Logica per estrarre o generare il seed numerico
+        raw_seed = self.entry_seed.get().strip()
+        if raw_seed.isdigit():
+            final_seed = int(raw_seed)
+        else:
+            final_seed = random.randint(1, 99999)
+            self.entry_seed.delete(0, tk.END)
+            self.entry_seed.insert(0, str(final_seed))
+            
+        self.lbl_current_seed.config(text=f"Seed attuale: {final_seed}")
+        
+        self.skin = genera_skin_completa(self.color_body, self.color_eyes, self.chk_bocca.get(), final_seed)
         img = self.skin.resize((160, 160), Image.NEAREST)
         self.tk_img = ImageTk.PhotoImage(img)
         self.l_prev.config(image=self.tk_img)
