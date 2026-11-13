@@ -55,23 +55,27 @@ def genera_skin_completa(base_color_rgb, eye_color_rgb, include_mouth, seed_val)
 class App:
     def __init__(self, root):
         self.root = root
-        self.root.title("Skin Gen v1.1.0")
-        self.root.geometry("400x660")  # Leggermente più alta per fare spazio al Seed
+        self.root.title("Skin Gen v2.0.0-Alpha 1")
+        self.root.geometry("400x720")  # Spazio leggermente espanso per la nuova palette
         self.root.configure(bg="#1a1a1a")
 
         self.color_body = (150, 0, 0)
         self.color_eyes = (0, 255, 255)
         self.skin = None
 
-        tk.Label(root, text="NETHER SKIN FACTORY", fg="red", bg="#1a1a1a", font=("Impact", 20)).pack(pady=15)
+        tk.Label(root, text="NETHER SKIN FACTORY", fg="red", bg="#1a1a1a", font=("Impact", 20)).pack(pady=10)
         
-        tk.Button(root, text="Scegli Colore Corpo", command=self.set_body).pack(pady=5)
-        tk.Button(root, text="Scegli Colore Occhi", command=self.set_eyes).pack(pady=5)
+        # Pulsanti colori esistenti
+        tk.Button(root, text="Scegli Colore Corpo", command=self.set_body).pack(pady=3)
+        tk.Button(root, text="Scegli Colore Occhi", command=self.set_eyes).pack(pady=3)
         
-        self.chk_bocca = tk.BooleanVar(value=True)
-        tk.Checkbutton(root, text="Mostra Bocca", variable=self.chk_bocca, bg="#1a1a1a", fg="white").pack(pady=5)
+        # --- NUOVA FUNZIONE: Generatore di Palette Tematiche Casuali ---
+        tk.Button(root, text="🎲 Palette Tematiche Casuali", command=self.random_theme_palette, bg="#333333", fg="#00ffcc", font=("Arial", 10, "bold")).pack(pady=5)
 
-        # --- SEZIONE SEED (La novità dell'Admin!) ---
+        self.chk_bocca = tk.BooleanVar(value=True)
+        tk.Checkbutton(root, text="Mostra Bocca", variable=self.chk_bocca, bg="#1a1a1a", fg="white", selectcolor="#1a1a1a").pack(pady=3)
+
+        # --- SEZIONE SEED ---
         tk.Label(root, text="Seed della Skin (Numero):", fg="white", bg="#1a1a1a", font=("Arial", 10, "bold")).pack(pady=2)
         self.entry_seed = tk.Entry(root, font=("Arial", 11), justify="center", width=20)
         self.entry_seed.pack(pady=2)
@@ -79,12 +83,12 @@ class App:
         self.lbl_current_seed = tk.Label(root, text="Seed attuale: -", fg="#00ff00", bg="#1a1a1a", font=("Arial", 9, "italic"))
         self.lbl_current_seed.pack(pady=2)
 
-        tk.Button(root, text="⚡ GENERA ⚡", command=self.run, bg="red", fg="white", font=("Arial", 12, "bold")).pack(pady=15)
+        tk.Button(root, text="⚡ GENERA ⚡", command=self.run, bg="red", fg="white", font=("Arial", 12, "bold")).pack(pady=10)
         
         self.l_prev = tk.Label(root, bg="#333")
-        self.l_prev.pack(pady=10)
+        self.l_prev.pack(pady=5)
         
-        tk.Button(root, text="💾 Salva Skin", command=self.save, bg="green", fg="white").pack(pady=10)
+        tk.Button(root, text="💾 Salva Skin", command=self.save, bg="green", fg="white").pack(pady=5)
 
     def set_body(self):
         c = colorchooser.askcolor()[0]
@@ -93,6 +97,23 @@ class App:
     def set_eyes(self):
         c = colorchooser.askcolor()[0]
         if c: self.color_eyes = tuple(map(int, c))
+
+    def random_theme_palette(self):
+        """Genera una combinazione tematica predefinita e coordinata di colori."""
+        tematiche = [
+            {"body": (180, 40, 20), "eyes": (255, 200, 0)},   # Nether Lava / Fuoco
+            {"body": (20, 90, 160), "eyes": (0, 255, 255)},   # Abisso Oceanico
+            {"body": (50, 160, 50), "eyes": (255, 0, 255)},   # Slime Tossico / Cyber
+            {"body": (90, 30, 140), "eyes": (0, 255, 100)},   # Ametista Reale
+            {"body": (40, 40, 40), "eyes": (255, 50, 50)},    # Ombra Oscura / Demoniaco
+            {"body": (210, 140, 50), "eyes": (50, 50, 50)},   # Sabbia del Deserto
+            {"body": (100, 70, 40), "eyes": (100, 255, 100)}, # Foresta Antica
+            {"body": (230, 230, 230), "eyes": (255, 0, 0)}    # Ghiaccio Spettrale
+        ]
+        scelta = random.choice(tematiche)
+        self.color_body = scelta["body"]
+        self.color_eyes = scelta["eyes"]
+        messagebox.showinfo("Palette Applicata!", "Nuova palette tematica casuale caricata con successo! Clicca su 'GENERA' per vederla.")
 
     def run(self):
         # Logica per estrarre o generare il seed numerico
@@ -107,7 +128,7 @@ class App:
         self.lbl_current_seed.config(text=f"Seed attuale: {final_seed}")
         
         self.skin = genera_skin_completa(self.color_body, self.color_eyes, self.chk_bocca.get(), final_seed)
-        img = self.skin.resize((160, 160), Image.NEAREST)
+        img = self.skin.resize((140, 140), Image.NEAREST)
         self.tk_img = ImageTk.PhotoImage(img)
         self.l_prev.config(image=self.tk_img)
 
