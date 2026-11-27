@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import colorchooser, filedialog, messagebox
 from PIL import Image, ImageTk, ImageDraw
 import random
+import datetime
 # Usiamo la nuova libreria che non richiede compilatori C++
 from perlin_noise import PerlinNoise 
 
@@ -55,13 +56,14 @@ def genera_skin_completa(base_color_rgb, eye_color_rgb, include_mouth, seed_val)
 class App:
     def __init__(self, root):
         self.root = root
-        self.root.title("Skin Gen v2.0.0-Alpha 1")
-        self.root.geometry("400x720")  # Spazio leggermente espanso per la nuova palette
+        self.root.title("Skin Gen v2.0.0-Alpha 2")
+        self.root.geometry("400x760")  # Spazio leggermente espanso per la cronologia
         self.root.configure(bg="#1a1a1a")
 
         self.color_body = (150, 0, 0)
         self.color_eyes = (0, 255, 255)
         self.skin = None
+        self.history = []  # <--- Lista per memorizzare la cronologia della sessione
 
         tk.Label(root, text="NETHER SKIN FACTORY", fg="red", bg="#1a1a1a", font=("Impact", 20)).pack(pady=10)
         
@@ -69,8 +71,11 @@ class App:
         tk.Button(root, text="Scegli Colore Corpo", command=self.set_body).pack(pady=3)
         tk.Button(root, text="Scegli Colore Occhi", command=self.set_eyes).pack(pady=3)
         
-        # --- NUOVA FUNZIONE: Generatore di Palette Tematiche Casuali ---
+        # --- FUNZIONE: Generatore di Palette Tematiche Casuali ---
         tk.Button(root, text="🎲 Palette Tematiche Casuali", command=self.random_theme_palette, bg="#333333", fg="#00ffcc", font=("Arial", 10, "bold")).pack(pady=5)
+
+        # --- NUOVA FUNZIONE: Pulsante Cronologia ---
+        tk.Button(root, text="📜 Visualizza Cronologia", command=self.show_history, bg="#333333", fg="white", font=("Arial", 10, "bold")).pack(pady=3)
 
         self.chk_bocca = tk.BooleanVar(value=True)
         tk.Checkbutton(root, text="Mostra Bocca", variable=self.chk_bocca, bg="#1a1a1a", fg="white", selectcolor="#1a1a1a").pack(pady=3)
@@ -128,6 +133,19 @@ class App:
         self.lbl_current_seed.config(text=f"Seed attuale: {final_seed}")
         
         self.skin = genera_skin_completa(self.color_body, self.color_eyes, self.chk_bocca.get(), final_seed)
+        
+        # --- REGISTRAZIONE NELLA CRONOLOGIA ---
+        history_entry = {
+            "time": datetime.datetime.now().strftime("%H:%M:%S"),
+            "seed": final_seed,
+            "body": self.color_body,
+            "eyes": self.color_eyes,
+            "mouth": self.chk_bocca.get(),
+            "image": self.skin.copy()
+        }
+        self.history.append(history_entry)
+        # --------------------------------------
+
         img = self.skin.resize((140, 140), Image.NEAREST)
         self.tk_img = ImageTk.PhotoImage(img)
         self.l_prev.config(image=self.tk_img)
@@ -136,6 +154,50 @@ class App:
         if self.skin:
             f = filedialog.asksaveasfilename(defaultextension=".png")
             if f: self.skin.save(f)
+
+    def show_history(self):
+        """Apre una finestra secondaria che mostra la lista delle skin generate nella sessione corrente."""
+        if not self.history:
+            messagebox.showinfo("Cronologia Vuota", "Non hai ancora generato nessuna skin in questa sessione.")
+            return
+
+        hist_win = tk.Toplevel(self.root)
+        hist_win.title("Cronologia Generazioni")
+        hist_win.geometry("380x420")
+        hist_win.configure(bg="#1a1a1a")
+
+        tk.Label(hist_win, text="📜 CRONOLOGIA SESSIONE", fg="#00ffcc", bg="#1a1a1a", font=("Arial", 12, "bold")).pack(pady=10)
+
+        frame = tk.Frame(hist_win, bg="#1a1a1a")
+        frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+        scrollbar = tk.Scrollbar(frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        listbox = tk.Listbox(frame, bg="#2a2a2a", fg="white", font=("Arial", 9), yscrollcommand=scrollbar.set, width=45, height=15)
+        for item in self.history:
+            listbox.insert(tk.END, f"[{item['time']}] Seed: {item['seed']} | Corpo: {item['body']}")
+        listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=listbox.yview)
+
+        def restore_selected():
+            sel = listbox.curselection()
+            if sel:
+                idx = sel[0]
+                item = self.history[idx]
+                # Ripristina i parametri nella schermata principale
+                self.color_body = item['body']
+                self.color_eyes = item['eyes']
+                self.chk_bocca.set(item['mouth'])
+                self.entry_seed.delete(0, tk.END)
+                self.entry_seed.insert(0, str(item['seed']))
+                
+                # Rigenera con i parametri storici
+                self.run()
+                messagebox.showinfo("Ripristinato", f"Skin delle {item['time']} ricaricata con successo!")
+                hist_win.destroy()
+
+        tk.Button(hist_win, text="Ricarica Skin Selezionata", command=restore_selected, bg="green", fg="white", font=("Arial", 10, "bold")).pack(pady=10)
 
 if __name__ == "__main__":
     root = tk.Tk()
